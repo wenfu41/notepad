@@ -9,8 +9,13 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../settings/view/settings_page.dart';
 
-// 年份选择状态管理
+// 年月选择状态管理
 final _selectedYearProvider = StateProvider<int>((ref) => DateTime.now().year);
+final _selectedMonthProvider = StateProvider<int>((ref) => DateTime.now().month);
+
+// 临时选择状态（对话框内使用）
+final _tempSelectedYearProvider = StateProvider<int?>((ref) => null);
+final _tempSelectedMonthProvider = StateProvider<int?>((ref) => null);
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -104,7 +109,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       builder: (context) => const AddTransactionBottomSheet(),
     );
   }
-}
+
+  }
 
 // 仪表板页面
 class _DashboardTab extends ConsumerWidget {
@@ -292,6 +298,217 @@ class _DashboardTab extends ConsumerWidget {
 class _StatisticsTab extends ConsumerWidget {
   const _StatisticsTab();
 
+  // 显示年月选择对话框
+  void _showMonthYearSelectorDialog(BuildContext context, WidgetRef ref) {
+    final currentYear = DateTime.now().year;
+    final currentMonth = DateTime.now().month;
+    final confirmedYear = ref.read(_selectedYearProvider);
+    final confirmedMonth = ref.read(_selectedMonthProvider);
+
+    // 初始化临时选择状态为当前确认状态
+    ref.read(_tempSelectedYearProvider.notifier).state = confirmedYear;
+    ref.read(_tempSelectedMonthProvider.notifier).state = confirmedMonth;
+
+    // 使用更简单的对话框
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '选择年月',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '选择年月',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 简单的年月选择
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            const Text(
+                              '年份',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: List.generate(6, (index) {
+                                final year = currentYear - index;
+                                return Consumer(
+                                  builder: (context, ref, child) {
+                                    final tempSelectedYear = ref.watch(_tempSelectedYearProvider);
+                                    final isSelected = tempSelectedYear == year;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        ref.read(_tempSelectedYearProvider.notifier).state = year;
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: _getDialogColor(isSelected, year, currentYear),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: _getDialogBorderColor(isSelected, year, currentYear),
+                                            width: isSelected ? 2 : 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '$year年',
+                                          style: TextStyle(
+                                            color: _getDialogTextColor(isSelected),
+                                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            const Text(
+                              '月份',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: List.generate(12, (index) {
+                                final month = index + 1;
+                                return Consumer(
+                                  builder: (context, ref, child) {
+                                    final tempSelectedMonth = ref.watch(_tempSelectedMonthProvider);
+                                    final isSelected = tempSelectedMonth == month;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        ref.read(_tempSelectedMonthProvider.notifier).state = month;
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: _getDialogColor(isSelected, month, currentMonth),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: _getDialogBorderColor(isSelected, month, currentMonth),
+                                            width: isSelected ? 2 : 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '$month月',
+                                          style: TextStyle(
+                                            color: _getDialogTextColor(isSelected),
+                                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 操作按钮
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('取消'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            ref.read(_tempSelectedYearProvider.notifier).state = currentYear;
+                            ref.read(_tempSelectedMonthProvider.notifier).state = currentMonth;
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('当前月份'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // 将临时选择应用到实际选择状态
+                            final tempYear = ref.read(_tempSelectedYearProvider);
+                            final tempMonth = ref.read(_tempSelectedMonthProvider);
+                            if (tempYear != null) {
+                              ref.read(_selectedYearProvider.notifier).state = tempYear;
+                            }
+                            if (tempMonth != null) {
+                              ref.read(_selectedMonthProvider.notifier).state = tempMonth;
+                            }
+                            Navigator.pop(context);
+                          },
+                          child: const Text('确定'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // 构建年度统计项目
   Widget _buildYearStatItem(String title, String amount, IconData icon, Color color) {
     return Container(
@@ -334,72 +551,16 @@ class _StatisticsTab extends ConsumerWidget {
     );
   }
 
-  // 显示年份选择对话框
-  void _showYearSelectorDialog(BuildContext context, WidgetRef ref) {
-    final currentYear = DateTime.now().year;
-    final selectedYear = ref.read(_selectedYearProvider);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择年份'),
-        content: SizedBox(
-          width: double.infinity,
-          height: 300,
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: 6, // 显示近6年
-            itemBuilder: (context, index) {
-              final year = currentYear - index;
-              final isSelected = year == selectedYear;
-
-              return InkWell(
-                onTap: () {
-                  ref.read(_selectedYearProvider.notifier).state = year;
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.blue : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$year年',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-        ],
-      ),
-    );
-  }
-
+  
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0);
+    final selectedYear = ref.watch(_selectedYearProvider) ?? DateTime.now().year;
+    final selectedMonth = ref.watch(_selectedMonthProvider) ?? DateTime.now().month;
+    final startOfMonth = DateTime(selectedYear, selectedMonth, 1);
+    final endOfMonth = DateTime(selectedYear, selectedMonth + 1, 0);
     final dateRange = DateRange(startOfMonth, endOfMonth);
 
     final totalIncome = ref.watch(totalIncomeProvider(dateRange));
@@ -418,11 +579,52 @@ class _StatisticsTab extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 标题
-            Text(
-              '统计分析',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Text(
+                  '统计分析',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: InkWell(
+                    onTap: () => _showMonthYearSelectorDialog(context, ref),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$selectedYear年${selectedMonth.toString().padLeft(2, '0')}月',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
 
@@ -431,7 +633,7 @@ class _StatisticsTab extends ConsumerWidget {
               children: [
                 Expanded(
                   child: SummaryCard(
-                    title: '本月收入',
+                    title: '${selectedMonth}月收入',
                     amount: '¥${totalIncome.toStringAsFixed(2)}',
                     icon: Icons.trending_up,
                     color: Colors.green,
@@ -440,7 +642,7 @@ class _StatisticsTab extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: SummaryCard(
-                    title: '本月支出',
+                    title: '${selectedMonth}月支出',
                     amount: '¥${totalExpense.toStringAsFixed(2)}',
                     icon: Icons.trending_down,
                     color: Colors.red,
@@ -450,7 +652,7 @@ class _StatisticsTab extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             SummaryCard(
-              title: '本月结余',
+              title: '${selectedMonth}月结余',
               amount: '¥${netIncome.toStringAsFixed(2)}',
               icon: Icons.account_balance_wallet,
               color: netIncome >= 0 ? Colors.blue : Colors.orange,
@@ -473,24 +675,17 @@ class _StatisticsTab extends ConsumerWidget {
                       Icon(Icons.calendar_today, color: colors.primary),
                       const SizedBox(width: 8),
                       Text(
-                        '年度统计 (${now.year}年)',
+                        '年度统计 ($selectedYear年)',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {
-                          _showYearSelectorDialog(context, ref);
-                        },
-                        child: Text('切换年份'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Consumer(
                     builder: (context, ref, child) {
-                      final selectedYear = ref.watch(_selectedYearProvider);
+                      final selectedYear = ref.watch(_selectedYearProvider) ?? DateTime.now().year;
                       final startOfYear = DateTime(selectedYear, 1, 1);
                       final endOfYear = DateTime(selectedYear + 1, 1, 0, 23, 59, 59);
                       final yearDateRange = DateRange(startOfYear, endOfYear);
@@ -540,7 +735,7 @@ class _StatisticsTab extends ConsumerWidget {
 
             // 交易详情
             Text(
-              '本月交易明细',
+              '$selectedYear年${selectedMonth}月交易明细',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -595,6 +790,37 @@ class _StatisticsTab extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  // 对话框内的颜色逻辑（点击时显示粉色）
+  Color _getDialogColor(bool isSelected, int value, int currentValue) {
+    if (isSelected) {
+      // 选中状态：粉色
+      return Colors.pink[300]!;
+    } else {
+      // 未选中状态：灰色
+      return Colors.grey[200]!;
+    }
+  }
+
+  // 对话框内的边框颜色逻辑
+  Color _getDialogBorderColor(bool isSelected, int value, int currentValue) {
+    if (isSelected) {
+      return Colors.pink[300]!;
+    } else {
+      return Colors.grey[300]!;
+    }
+  }
+
+  // 对话框内的文字颜色逻辑
+  Color _getDialogTextColor(bool isSelected) {
+    if (isSelected) {
+      // 选中状态：白色文字
+      return Colors.white;
+    } else {
+      // 未选中状态：黑色文字
+      return Colors.black87;
+    }
   }
 }
 
